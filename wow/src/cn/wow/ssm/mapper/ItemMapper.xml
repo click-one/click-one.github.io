@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.wow.ssm.mapper.ItemMapper">
+<!-- 商品查询的相关信息的resultMap -->
+<resultMap type="cn.wow.ssm.vo.ItemPicture" id="selectItemPicResultMap">
+  <id column="id" property="id"/>
+  <result column="parent_id" property="parent_id"/>
+  <association property="item" javaType="cn.wow.ssm.po.Item">
+    <id column="id" property="id"/>
+    <result column="name" property="name"/>
+    <result column="price" property="price"/>
+    <result column="detail" property="detail"/>
+    <result column="classify_id" property="classify_id"/>
+    <result column="area" property="area"/>
+    <result column="createTime" property="createTime"/>
+    <result column="discount" property="discount"/>
+    <result column="saleCount" property="saleCount"/>
+    <result column="repertory" property="repertory"/>
+    <result column="recommend" property="recommend"/>
+  </association>
+  <association property="itemPic" javaType="cn.wow.ssm.po.ItemPic">
+     <id column="pic_id" property="id"/>
+     <result column="item_id" property="item_id"/>
+     <result column="url" property="url"/>
+  </association>
+</resultMap>
+<!-- 通过商品的Id查看商品的详细信息和图片 -->
+<select id="selectItemById" parameterType="Integer" resultMap="selectItemPicResultMap">
+  select tb_item.id,
+   tb_item.name,
+   tb_item.price,
+   tb_item.detail,
+   tb_item.classify_id,
+   tb_item.area,
+   tb_item_pic.id as pic_id,
+   tb_item_pic.item_id,
+   tb_item_pic.url,
+   tb_item_classify.parent_id
+   from
+   tb_item,
+   tb_item_pic,
+   tb_item_classify
+   where tb_item.id = tb_item_pic.item_id
+   AND 
+   tb_item.classify_id = tb_item_classify.id
+   and
+   tb_item.id = (#{id})
+</select>
+<!-- 在首页进行加载时，获取每个分类下面的商品的信息和图片 -->
+<select id="selectItemAndPic" resultMap="selectItemPicResultMap">
+  select tb_item.id,
+   tb_item.name,
+   tb_item.price,
+   tb_item.detail,
+   tb_item.classify_id,
+   tb_item.area,
+   tb_item.discount,
+   tb_item.recommend,
+   tb_item.saleCount,
+   tb_item_pic.id as pic_id,
+   tb_item_pic.item_id,
+   tb_item_pic.url,
+   tb_item_classify.parent_id
+   from
+   tb_item,
+   tb_item_pic,
+   tb_item_classify
+   where tb_item.id = tb_item_pic.item_id
+   AND 
+   tb_item.classify_id = tb_item_classify.id
+</select>
+
+ <!--新加商品-->
+ <insert id="insertItem" parameterType="cn.wow.ssm.po.Item" 
+  useGeneratedKeys="true" keyProperty="id">
+  insert into tb_item 
+  (name,price,detail,createTime,discount,area,classify_id)
+  values(#{name},#{price},#{detail},#{createTime},#{discount},#{area},#{classify_id})
+ </insert>
+ 
+ <!-- 插入商品的图片 -->
+ <insert id="insertItemPic" parameterType="cn.wow.ssm.po.ItemPic">
+   insert into tb_item_pic
+   (item_id,url)
+   values(#{item_id},#{url})
+ </insert>
+
+<!-- 查询所有的一级分类-->
+<select id="gainFirstClassify" resultType="cn.wow.ssm.po.ItemClassify">
+  select * from tb_item_classify where parent_id=0
+</select>
+<!--查询所有的二级分类-->
+<select id="gainSecondClassify" resultType="cn.wow.ssm.po.ItemClassify">
+  select * from tb_item_classify 
+  where parent_id in
+  (select id from tb_item_classify where parent_id=0)
+</select>
+
+<!-- 由某个二级分类，查询该分类下面的所有子类的id -->
+<select id="selectIdBySecondClassify" parameterType="java.lang.Integer" resultType="java.lang.Integer">
+ select id from tb_item_classify where parent_id = #{id}
+</select>
+
+<!-- 由某个一级分类获取其下面所有的三级分类的id -->
+<select id="selectIdByFirstClassify" parameterType="java.lang.Integer" resultType="java.lang.Integer">
+ SELECT * FROM tb_item_classify 
+ WHERE parent_id IN 
+ (SELECT id from tb_item_classify WHERE parent_id=#{id}) 
+</select>
+
+
+<!--选择商品的详细信息 通过ids-->
+<select id="selectItemByIds"  resultType="cn.wow.ssm.po.Item">
+     select * from tb_Item
+     where classify_id in
+     <foreach item="ids" index="index" collection="array"
+      open="(" separator="," close=")">
+        #{ids}
+     </foreach>
+ </select>
+   
+ <!--选择商品的图片通过ids-->
+   <select id="selectItemPicByIds" resultType="cn.wow.ssm.po.ItemPic">
+     select * from tb_Item_pic
+     where id in
+     <foreach item="ids" index="index" collection="array"
+      open="(" separator="," close=")">
+        #{ids}
+     </foreach>
+  </select>  
+  
+  <!-- 排序序查询商品 -->
+  <select id="ItemOrder" parameterType="cn.wow.ssm.vo.ItemSortName" resultType="cn.wow.ssm.po.Item">
+  <if test="pNum>1">                      <!-- 如果页面的数值大于1，则需要进行子查询，只排序当前页的数据 -->
+    select * from (
+  </if>
+     select * from tb_Item
+     where classify_id  in
+     <foreach item="ids" index="index" collection="ids"
+      open="(" separator="," close=")">
+        #{ids}
+     </foreach>
+     
+     <if test="pNum==1">
+        <if test="sortName==1">           <!-- 当sortName==1时，按照价格排序 -->
+          order by price
+         </if> 
+        <if test="sortName==2">           <!-- 当sortName==2时，按照上市时间排序-->
+          order by createTime
+        </if> 
+        <if test="sortName==3">           <!-- 当sortName==3时，按照销量进行排序-->
+          order by saleCount
+        </if> 
+        <if test="sortId==1">             <!-- 当sortId==1时，按照降序排序  -->
+           desc
+        </if>
+         <if test="sortId==2">            <!-- 当sortId==2时，按照升序排序-->
+           asc
+        </if>
+      </if>
+      limit #{start},#{pageSize}
+      <if test="pNum>1">    
+      ) t
+      </if>
+      <if test="pNum>1">                   
+         <if test="sortName==1">           <!-- 当sortName==1时，按照价格排序 -->
+          order by price
+         </if> 
+        <if test="sortName==2">           <!-- 当sortName==2时，按照上市时间排序-->
+          order by createTime
+        </if> 
+        <if test="sortName==3">           <!-- 当sortName==3时，按照销量进行排序-->
+          order by saleCount
+        </if> 
+        <if test="sortId==1">             <!-- 当sortId==1时，按照降序排序  -->
+           desc
+        </if>
+         <if test="sortId==2">            <!-- 当sortId==2时，按照升序排序-->
+           asc
+        </if>
+      </if>  
+  </select>
+  
+  
+  
+  <!-- 模糊查询的排序实现 -->
+  <select id="selectItemFuzzy" parameterType="cn.wow.ssm.vo.ItemSortName" resultType="cn.wow.ssm.po.Item">
+     <if test="pNum>1">    <!-- 如果页面的数值大于1，则需要进行子查询，只排序当前页的数据 -->
+    select * from (
+     </if>
+     select * from tb_item
+     where name like '%${fuzzyName}%' 
+     or detail like '%${fuzzyName}%'
+     <if test="pNum==1">                  <!-- 当页码等于1，则进行分页查询-->
+        <if test="sortName==1">           <!-- 当sortName==1时，按照价格排序 -->
+          order by price
+         </if> 
+        <if test="sortName==2">           <!-- 当sortName==2时，按照上市时间排序-->
+          order by createTime
+        </if> 
+        <if test="sortName==3">           <!-- 当sortName==3时，按照销量进行排序-->
+          order by saleCount
+        </if> 
+        <if test="sortId==1">             <!-- 当sortId==1时，按照降序排序  -->
+           desc
+        </if>
+         <if test="sortId==2">            <!-- 当sortId==2时，按照升序排序-->
+           asc
+        </if>
+      </if>
+      limit #{start},#{pageSize}
+    <if test="pNum>1">      
+      ) t   <!-- 进行子查询的表名 -->
+      </if>
+      <if test="pNum>1">     <!-- 当请求的页码大于1时， 则只排序当前页的数据-->
+         <if test="sortName==1">           <!-- 当sortName==1时，按照价格排序 -->
+          order by price
+         </if> 
+        <if test="sortName==2">           <!-- 当sortName==2时，按照上市时间排序-->
+          order by createTime
+        </if> 
+        <if test="sortName==3">           <!-- 当sortName==3时，按照销量进行排序-->
+          order by saleCount
+        </if> 
+        <if test="sortId==1">             <!-- 当sortId==1时，按照降序排序  -->
+           desc
+        </if>
+         <if test="sortId==2">            <!-- 当sortId==2时，按照升序排序-->
+           asc
+        </if>
+      </if>  
+    
+  </select>
+  <!-- 统计展示商品的总记录数 -->
+  <select id="countItemOrder" parameterType="cn.wow.ssm.vo.ItemSortName" resultType="Integer">
+     select count(*) from tb_Item
+     where classify_id  in
+     <foreach item="ids" index="index" collection="ids"
+      open="(" separator="," close=")">
+        #{ids}
+     </foreach>
+  </select>
+  
+  <!-- 统计模糊查询的总记录数 -->
+  <select id="CountSelectItemFuzzy" parameterType="cn.wow.ssm.vo.ItemSortName" resultType="Integer">
+     select count(*) from tb_item
+     where name like '%${fuzzyName}%' 
+     or detail like '%${fuzzyName}%'
+  </select>
+  <!-- 通过创建的时间排序选择最新的5张滚动图片 -->
+  <select id="selectRollPic" resultType="cn.wow.ssm.po.RollPic">
+    select * from
+    tb_roll_pic 
+    order by createTime desc 
+    limit 5
+  </select>
+  
+  <insert id="insertRollPic" parameterType="cn.wow.ssm.po.RollPic">
+  insert into tb_roll_pic
+  (url,link,createTime)
+  values(#{url},#{link},#{createTime})
+  </insert>
+  
+  
+</mapper>

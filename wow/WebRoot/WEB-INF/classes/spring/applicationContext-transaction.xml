@@ -1,0 +1,50 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+		http://www.springframework.org/schema/beans/spring-beans-3.2.xsd 
+		http://www.springframework.org/schema/mvc 
+		http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd 
+		http://www.springframework.org/schema/context 
+		http://www.springframework.org/schema/context/spring-context-3.2.xsd 
+		http://www.springframework.org/schema/aop 
+		http://www.springframework.org/schema/aop/spring-aop-3.2.xsd 
+		http://www.springframework.org/schema/tx 
+		http://www.springframework.org/schema/tx/spring-tx-3.2.xsd ">
+
+<!-- 事务管理器 
+	对mybatis操作数据库事务控制，spring使用jdbc的事务控制类
+-->
+<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+	<!-- 数据源
+	dataSource在applicationContext-dao.xml中配置了 
+	 -->
+	<property name="dataSource" ref="dataSource"/>
+</bean>
+
+<!-- 通知 -->
+<tx:advice id="txAdvice" transaction-manager="transactionManager">
+	<tx:attributes>
+		<!-- 传播行为 -->
+		<tx:method name="save*" propagation="REQUIRED"/>
+		<!-- REQUIRED:业务方法需要在一个容器里运行。如果方法运行时，已经处在一个事务中，
+		那么加入到这个事务，否则自己新建一个新的事务。-->
+		<tx:method name="submit*" propagation="REQUIRED"/>
+		<tx:method name="delete*" propagation="REQUIRED"/>
+		<tx:method name="insert*" propagation="REQUIRED"/>
+		<tx:method name="update*" propagation="REQUIRED"/>
+		<!-- SUPPORTS:该方法在某个事务范围内被调用，则方法成为该事务的一部分。
+		如果方法在该事务范围外被调用，该方法就在没有事务的环境下执行。 -->
+		<tx:method name="find*" propagation="SUPPORTS" read-only="true"/>
+		<tx:method name="get*" propagation="SUPPORTS" read-only="true"/>
+		<tx:method name="select*" propagation="SUPPORTS" read-only="true"/>
+	</tx:attributes>
+</tx:advice>
+<!-- aop -->
+<aop:config>
+    <!-- 匹配包中的任意修饰符，任意返回值，任意方法名，任意参数的方法执行！ -->
+	<aop:advisor advice-ref="txAdvice" pointcut="execution(* cn.wow.ssm.service.impl.*.*(..))"/>
+</aop:config>
+
+</beans>

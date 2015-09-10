@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- namespace命名空间，作用就是对sql进行分类化管理，理解sql隔离 
+注意：使用mapper代理方法开发，namespace有特殊重要的作用，namespace等于mapper接口地址
+-->
+
+
+<mapper namespace="cn.wow.ssm.mapper.CartMapper">
+<!-- 定义了一个 ItemNumPic类型的resultMap-->
+<resultMap id="itemNumPicMap" type="cn.wow.ssm.vo.ItemNumPic">
+ <result column="id" property="num"/>      <!--封装次数据没有作用，但不进行封装，缺少一个唯一标识,查询出来，始终只有一条数据-->
+ <association property="item" javaType="cn.wow.ssm.po.Item">
+   <id column="id" property="id"/>
+   <result column="name" property="name"/>
+   <result column="price" property="price"/>
+   <result column="detail" property="detail"/>
+   <result column="createTime" property="createTime"/>
+   <result column="discount" property="discount"/>
+   <result column="keyWords" property="keyWords"/>
+   <result column="area" property="area"/>
+   <result column="saleCount" property="saleCount"/>
+   <result column="classify_id" property="classify_id"/>
+   <result column="repertory" property="repertory"/>
+   <result column="recommend" property="recommend"/>
+ </association>
+ <association property="itemPic" javaType="cn.wow.ssm.po.ItemPic">
+	 <id column="itemPic_id" property="id"/>
+	 <result column="item_id" property="item_id"/>
+	 <result column="url" property="url"/>
+ </association>
+</resultMap>
+   
+   
+   
+   
+   <!--  根据ids数组进行查询-->
+   <select id="selectItemById"  resultType="cn.wow.ssm.po.Item">
+     select * from tb_Item
+     where id in
+     <foreach item="ids" index="index" collection="array"
+      open="(" separator="," close=")">
+        #{ids}
+  </foreach>
+   </select>
+   <!-- -->
+   <insert id="insertUserCollect" parameterType="cn.wow.ssm.po.UserCollect">
+     insert into
+     tb_user_collect(user_id,item_id,collectTime)
+     values(#{user_id},#{item_id},#{collectTime})
+   </insert>
+   <!--查看该商品是否被用户收藏 -->
+   <select id="selectUserCollect" parameterType="cn.wow.ssm.po.UserCollect" resultType="cn.wow.ssm.po.UserCollect">
+     select * from tb_user_collect
+     where user_id =#{user_id} and item_id=#{item_id}
+   </select>
+   <!--  选择商品的图片-->
+   <select id="selectItemPic" resultType="cn.wow.ssm.po.ItemPic">
+     select * from tb_Item_pic
+     where id in
+     <foreach item="ids" index="index" collection="array"
+      open="(" separator="," close=")">
+        #{ids}
+  </foreach>
+   </select>
+   
+   
+   
+   <!-- 根据商品的id来查询商品信息和图片，通过resultMap来进行映射 -->
+   <select id="selectItemAndPic" resultMap="itemNumPicMap" >
+    select 
+    tb_item.*,
+    tb_item_pic.id as itemPic_id,
+    tb_item_pic.item_id,
+    tb_item_pic.url
+    from tb_item,
+    tb_item_pic
+    where
+    tb_item.id=tb_item_pic.item_id
+    and
+    tb_item.id 
+    in
+    <foreach item="ids" index="index" collection="array"
+      open="(" separator="," close=")">
+        #{ids}
+     </foreach>
+    </select>
+   
+</mapper>

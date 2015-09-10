@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- namespace命名空间，作用就是对sql进行分类化管理，理解sql隔离 
+注意：使用mapper代理方法开发，namespace有特殊重要的作用，namespace等于mapper接口地址
+-->
+<mapper namespace="cn.wow.ssm.mapper.UserMapper">
+
+
+	
+	<insert id="insertUser" parameterType="cn.wow.ssm.po.User">
+	   insert into tb_user (id,username,password,email,
+	   gender,telphone,activeTime) 
+	   values(#{id},#{username},#{password},#{email},#{gender},
+	   #{telphone},#{activeTime})
+	</insert>
+	<!--
+	  验证登录用户名和密码是否正确、用户名是否重复、邮箱是否唯一。
+	-->
+	<select id="findUserByCriteria" parameterType="cn.wow.ssm.po.User" resultType="cn.wow.ssm.po.User">
+	    select * from tb_user 
+	    <where>
+	       <choose>
+	         <when test="username!=null and username!='' and password!=null and password!=''">
+	           and username=#{username} and password=#{password}
+	         </when>
+	         <when test="username!=null and username!=''">
+	           and username=#{username}
+	         </when>
+	         <when test="email!=null and email!=''">
+	           and email=#{email}
+	         </when>
+	       </choose>
+	    </where>
+	</select>
+	<!-- 激活用户后，更新数据库激活相关的字段 -->
+	<update id="activeUpdateUser" parameterType="cn.wow.ssm.po.User">
+	  update tb_user
+      set 
+	      activetime = #{activeTime},
+	      activeState = #{activeState}
+	  where username = #{username}
+	  
+	</update>
+	<!-- 根据用户名查询密码 -->
+	<select id="selectPasswordByUsername" parameterType="String" resultType="cn.wow.ssm.po.User">
+	  select *
+	  from tb_user
+	  where username = (#{username})
+	</select>
+	<!-- 根据用户名修改用户的密码 -->
+    <update id="updatePassword" parameterType="cn.wow.ssm.po.User">
+      update tb_user
+      set
+        password = (#{password})
+        where username = (#{username})
+    </update>	
+    <!-- 查看用户的收藏 -->
+    <select id="selectUserCollect" parameterType="Integer" resultType="cn.wow.ssm.po.UserCollect">
+      select
+      tb_user_collect.collectTime,
+      tb_user_collect.collectPrice,
+      tb_item.id,
+      tb_item.price,
+      tb_item.name,
+      tb_item_pic.url
+      from
+      tb_user_collect,
+      tb_item,
+      tb_item_pic
+      where 
+      tb_user_collect.item_id = tb_item.id
+      and tb_item.id = tb_item_pic.item_id
+      and tb_user_collect.user_id = (#{user_id})
+    </select>
+	
+</mapper>
+
+

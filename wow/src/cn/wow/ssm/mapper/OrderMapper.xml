@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 订单的相关操作 -->
+<mapper namespace="cn.wow.ssm.mapper.OrderMapper">
+<!-- 定义订单管理的resultMap -->
+<resultMap type="cn.wow.ssm.vo.OrderRef" id="orderRefResultMap">
+  <id column="order_id" property="order_id"/>
+  <association property="order" javaType="cn.wow.ssm.po.Order">
+    <id column="id" property="id"/>
+    <result column="user_id" property="user_id"/>
+    <result column="createTime" property="createTime"/>
+    <result column="note" property="note"/>
+    <result column="totalPrice" property="totalPrice"/>
+    <result column="telphone" property="telphone"/>
+    <result column="state" property="state"/>
+    <result column="address_id" property="address_id"/>
+    <result column="consignee" property="consignee"/>
+  </association>
+  <collection property="orderDetailsPic" ofType="cn.wow.ssm.vo.OrderDetailsPic">
+    <id column="OrderDetails_id" property="id"></id>
+    <result column="order_id" property="order_id"/>
+    <result column="item_id" property="item_id"/>
+    <result column="item_num" property="item_num"/>
+    <result column="url" property="url"/>
+  </collection>
+</resultMap>
+
+<!--  插入用户的地址-->
+ <insert id="insertAddress" parameterType="cn.wow.ssm.po.UserAddress"
+ useGeneratedKeys="true" keyProperty="id">
+  insert into
+  tb_user_address
+  (user_id,address)
+  values(#{user_id},#{address})
+ </insert>
+ <!--插入用户的订单-->
+ <insert id="insertOrder" parameterType="cn.wow.ssm.po.Order"
+ useGeneratedKeys="true" keyProperty="id">
+  insert into 
+  tb_order
+  (user_id,consignee,note,telphone,totalPrice,createTime,address_id,state)
+  values(#{user_id},#{consignee},#{note},#{telphone},
+         #{totalPrice},#{createTime},#{address_id},#{state})
+ 
+ </insert>
+ 
+ <!--插入订单详情-->
+ <insert id="insertOrderDetails">
+  insert into
+  tb_order_details
+  (order_id,item_id,item_num)
+  values
+    <foreach collection="list" item="orderDetails" index="index" separator="," >  
+        (#{orderDetails.order_id},#{orderDetails.item_id},#{orderDetails.item_num})  
+    </foreach>  
+ </insert>
+ 
+ <!-- 选择商品的价格和id -->
+ <select id="findItemByIds" resultType="cn.wow.ssm.po.Item">
+   select id,price 
+   from tb_item
+   where id in
+   <foreach item="ids" index="index" collection="array"
+      open="(" separator="," close=")">
+        #{ids}
+     </foreach>
+ </select>
+  
+ <!-- 通过user的id来选取用户的订单 -->
+ <select id="selectOrderByUser" parameterType="Integer" resultMap="orderRefResultMap">
+   select tb_order.*,
+   tb_item_pic.url,
+   tb_order_details.id as OrderDetails_id,
+   tb_order_details.order_id,
+   tb_order_details.item_id,
+   tb_order_details.item_num
+   from
+   tb_order,
+   tb_order_details,
+   tb_item_pic
+   where tb_order.id = tb_order_details.order_id
+   and tb_order_details.item_id = tb_item_pic.item_id
+   and tb_order.user_id=(#{userId})
+ 
+ </select>
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+</mapper>
+
